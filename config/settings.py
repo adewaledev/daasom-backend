@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,9 +23,15 @@ load_dotenv(BASE_DIR / ".env")
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+def split_env_list(value: str):
+    if not value:
+        return []
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+
+ALLOWED_HOSTS = split_env_list(os.getenv("ALLOWED_HOSTS"))
+CSRF_TRUSTED_ORIGINS = split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!")
@@ -108,14 +115,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
-    }
+    "default": dj_database_url.config(
+        default=os.getenv("DATABASE_URL")
+    )
 }
 
 # Password validation

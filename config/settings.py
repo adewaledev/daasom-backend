@@ -34,6 +34,8 @@ def split_env_list(value: str):
 
 ALLOWED_HOSTS = split_env_list(os.getenv("ALLOWED_HOSTS"))
 CSRF_TRUSTED_ORIGINS = split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
+CORS_ALLOWED_ORIGINS = split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+CORS_ALLOW_CREDENTIALS = True
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!")
@@ -71,11 +73,13 @@ INSTALLED_APPS = [
     "payments",
     "ledger",
     "documents",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",

@@ -62,3 +62,20 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def by_job(self, request):
         job_id = request.query_params.get("job_id")
         return Response(DocumentSerializer(self.queryset.filter(job_id=job_id), many=True).data)
+
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        document = self.get_object()
+
+        try:
+            with urllib_request.urlopen(document.url) as remote:
+                content = remote.read()
+        except URLError:
+            return Response({"detail": "Unable to fetch document from storage"}, status=502)
+
+        response = HttpResponse(
+            content,
+            content_type=document.content_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{document.filename}"'
+        return response

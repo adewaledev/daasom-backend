@@ -15,7 +15,7 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
-from config.env_utils import normalize_host, normalize_origin, split_env_list
+from config.env_utils import normalize_host, normalize_origin, normalize_domain, split_env_list
 
 load_dotenv()
 
@@ -28,7 +28,8 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
-ALLOWED_HOSTS = [normalize_host(v) for v in split_env_list(os.getenv("ALLOWED_HOSTS"))]
+ALLOWED_HOSTS = [normalize_host(v)
+                 for v in split_env_list(os.getenv("ALLOWED_HOSTS"))]
 ALLOWED_HOSTS = [v for v in ALLOWED_HOSTS if v]
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
@@ -49,13 +50,15 @@ if DEBUG and not CORS_ALLOWED_ORIGINS:
 
 CORS_ALLOW_CREDENTIALS = True
 
-cloudflare_pages_domain = normalize_domain(os.getenv("CLOUDFLARE_PAGES_DOMAIN"))
+cloudflare_pages_domain = normalize_domain(
+    os.getenv("CLOUDFLARE_PAGES_DOMAIN"))
 if cloudflare_pages_domain:
     CORS_ALLOWED_ORIGIN_REGEXES = [
         rf"^https://([a-zA-Z0-9-]+\.)?{cloudflare_pages_domain}$"
     ]
     CSRF_TRUSTED_ORIGINS.extend(
-        [f"https://{cloudflare_pages_domain}", f"https://*.{cloudflare_pages_domain}"]
+        [f"https://{cloudflare_pages_domain}",
+            f"https://*.{cloudflare_pages_domain}"]
     )
 else:
     CORS_ALLOWED_ORIGIN_REGEXES = []

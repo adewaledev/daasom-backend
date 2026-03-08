@@ -31,3 +31,20 @@ def normalize_origin(value: str) -> str:
         return ""
 
     return ""
+
+
+def normalize_domain(value: str | None) -> str:
+    """Extract and normalize a domain from a URL or domain string."""
+    if not value:
+        return ""
+
+    raw = value.strip()
+    if not raw:
+        return ""
+
+    if "://" in raw:
+        parsed = urlparse(raw)
+        return parsed.hostname or ""
+
+    # Remove path if present
+    return raw.split("/")[0]

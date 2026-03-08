@@ -15,6 +15,11 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
+from config import env_utils
+
+# Backward-compatible alias so any direct normalize_domain(...) usage in this module never fails
+normalize_domain = getattr(env_utils, "normalize_domain", env_utils.normalize_host)
+
 load_dotenv()
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -26,16 +31,40 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
-def split_env_list(value: str):
-    if not value:
-        return []
-    return [v.strip() for v in value.split(",") if v.strip()]
+ALLOWED_HOSTS = [env_utils.normalize_host(v) for v in env_utils.split_env_list(os.getenv("ALLOWED_HOSTS"))]
+ALLOWED_HOSTS = [v for v in ALLOWED_HOSTS if v]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
+CSRF_TRUSTED_ORIGINS = [
+    env_utils.normalize_origin(v) for v in env_utils.split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
+]
+CSRF_TRUSTED_ORIGINS = [v for v in CSRF_TRUSTED_ORIGINS if v]
+if DEBUG and not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
-ALLOWED_HOSTS = split_env_list(os.getenv("ALLOWED_HOSTS"))
-CSRF_TRUSTED_ORIGINS = split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
-CORS_ALLOWED_ORIGINS = split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+CORS_ALLOWED_ORIGINS = [
+    env_utils.normalize_origin(v) for v in env_utils.split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+]
+CORS_ALLOWED_ORIGINS = [v for v in CORS_ALLOWED_ORIGINS if v]
+if DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 CORS_ALLOW_CREDENTIALS = True
+
+cloudflare_pages_domain = normalize_domain(os.getenv("CLOUDFLARE_PAGES_DOMAIN", "")).lstrip(".")
+if cloudflare_pages_domain:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        rf"^https://([a-zA-Z0-9-]+\.)?{cloudflare_pages_domain}$"
+    ]
+    CSRF_TRUSTED_ORIGINS.extend(
+        [f"https://{cloudflare_pages_domain}", f"https://*.{cloudflare_pages_domain}"]
+    )
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES = []
+
+# de-duplicate while preserving order
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!")

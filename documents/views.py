@@ -1,11 +1,11 @@
-from urllib import request
-from django.shortcuts import render
+from urllib import request as urllib_request
+from urllib.error import URLError
 
-# Create your views here.
+from django.http import HttpResponse
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
 
 from documents.models import Document
 from documents.serializers import DocumentSerializer
@@ -37,7 +37,49 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if not value:
             return Response({"detail": f"{field_name} required for {doc_type} document"}, status=400)
 
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response({"detail": "file is required"}, status=400)
+
+        folder = f"documents/{doc_type.lower()}/{value}"
+        uploaded = upload_file(file_obj, folder=folder)
+
+        document = Document.objects.create(
+            doc_type=doc_type,
+            job_id=job_id if doc_type == "JOB" else None,
+            invoice_id=invoice_id if doc_type == "INVOICE" else None,
+            receipt_id=receipt_id if doc_type == "RECEIPT" else None,
+            filename=file_obj.name,
+            content_type=getattr(file_obj, "content_type", "") or "",
+            size_bytes=getattr(file_obj, "size", 0) or 0,
+            storage_provider="cloudinary",
+            storage_key=uploaded["public_id"],
+            url=uploaded["url"],
+            uploaded_by=request.user,
+        )
+
+        serializer = self.get_serializer(document)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=201, headers=headers)
+
     @action(detail=False, methods=["get"])
     def by_job(self, request):
         job_id = request.query_params.get("job_id")
         return Response(DocumentSerializer(self.queryset.filter(job_id=job_id), many=True).data)
+
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        document = self.get_object()
+
+        try:
+            with urllib_request.urlopen(document.url) as remote:
+                content = remote.read()
+        except URLError:
+            return Response({"detail": "Unable to fetch document from storage"}, status=502)
+
+        response = HttpResponse(
+            content,
+            content_type=document.content_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{document.filename}"'
+        return response

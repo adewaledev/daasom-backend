@@ -31,15 +31,3 @@ def normalize_origin(value: str) -> str:
         return ""
 
     return ""
-
-
-def normalize_domain(value: str | None) -> str:
-    if not value:
-        return ""
-
-    raw = value.strip()
-    if not raw:
-        return ""
-
-    host = normalize_host(raw)
-    return host.lstrip(".")

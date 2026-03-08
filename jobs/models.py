@@ -32,6 +32,9 @@ class Job(models.Model):
     container_number = models.CharField(max_length=120, blank=True, default="")
     transit_days = models.PositiveIntegerField(null=True, blank=True)
 
+    port = models.CharField(max_length=120, blank=True, default="")
+    vessel = models.CharField(max_length=120, blank=True, default="")
+
     duty_amount = models.DecimalField(
         max_digits=14, decimal_places=2, null=True, blank=True)
     refund_amount = models.DecimalField(

@@ -49,6 +49,20 @@ if DEBUG and not CORS_ALLOWED_ORIGINS:
 
 CORS_ALLOW_CREDENTIALS = True
 
+cloudflare_pages_domain = normalize_domain(os.getenv("CLOUDFLARE_PAGES_DOMAIN"))
+if cloudflare_pages_domain:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        rf"^https://([a-zA-Z0-9-]+\.)?{cloudflare_pages_domain}$"
+    ]
+    CSRF_TRUSTED_ORIGINS.extend(
+        [f"https://{cloudflare_pages_domain}", f"https://*.{cloudflare_pages_domain}"]
+    )
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES = []
+
+# de-duplicate while preserving order
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
+
 SECRET_KEY = os.getenv(
     "SECRET_KEY", "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!")
 

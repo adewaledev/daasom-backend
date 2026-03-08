@@ -15,7 +15,7 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
-from config import env_utils
+from config.env_utils import normalize_host, normalize_origin, split_env_list
 
 load_dotenv()
 
@@ -28,20 +28,20 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
-ALLOWED_HOSTS = [env_utils.normalize_host(v) for v in env_utils.split_env_list(os.getenv("ALLOWED_HOSTS"))]
+ALLOWED_HOSTS = [normalize_host(v) for v in split_env_list(os.getenv("ALLOWED_HOSTS"))]
 ALLOWED_HOSTS = [v for v in ALLOWED_HOSTS if v]
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
-    env_utils.normalize_origin(v) for v in env_utils.split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
+    normalize_origin(v) for v in split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
 ]
 CSRF_TRUSTED_ORIGINS = [v for v in CSRF_TRUSTED_ORIGINS if v]
 if DEBUG and not CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
 CORS_ALLOWED_ORIGINS = [
-    env_utils.normalize_origin(v) for v in env_utils.split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+    normalize_origin(v) for v in split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
 ]
 CORS_ALLOWED_ORIGINS = [v for v in CORS_ALLOWED_ORIGINS if v]
 if DEBUG and not CORS_ALLOWED_ORIGINS:
@@ -49,7 +49,6 @@ if DEBUG and not CORS_ALLOWED_ORIGINS:
 
 CORS_ALLOW_CREDENTIALS = True
 
-normalize_domain = getattr(env_utils, "normalize_domain", env_utils.normalize_host)
 cloudflare_pages_domain = normalize_domain(os.getenv("CLOUDFLARE_PAGES_DOMAIN"))
 if cloudflare_pages_domain:
     CORS_ALLOWED_ORIGIN_REGEXES = [

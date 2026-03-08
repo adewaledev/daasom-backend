@@ -15,7 +15,7 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
-from config.env_utils import normalize_domain, normalize_host, normalize_origin, split_env_list
+from config.env_utils import normalize_host, normalize_origin, split_env_list
 
 load_dotenv()
 

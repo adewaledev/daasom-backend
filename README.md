@@ -240,7 +240,6 @@ Filters:
 - `PATCH /api/documents/{id}/`
 - `DELETE /api/documents/{id}/`
 - `GET /api/documents/by_job/?job_id=`
-- `GET /api/documents/{id}/download/` *(authenticated backend-proxied download)*
 
 ---
 

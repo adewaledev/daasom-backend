@@ -15,6 +15,8 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
+from config.env_utils import normalize_host, normalize_origin, split_env_list
+
 load_dotenv()
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -26,15 +28,25 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 
-def split_env_list(value: str):
-    if not value:
-        return []
-    return [v.strip() for v in value.split(",") if v.strip()]
+ALLOWED_HOSTS = [normalize_host(v) for v in split_env_list(os.getenv("ALLOWED_HOSTS"))]
+ALLOWED_HOSTS = [v for v in ALLOWED_HOSTS if v]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
+CSRF_TRUSTED_ORIGINS = [
+    normalize_origin(v) for v in split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
+]
+CSRF_TRUSTED_ORIGINS = [v for v in CSRF_TRUSTED_ORIGINS if v]
+if DEBUG and not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
-ALLOWED_HOSTS = split_env_list(os.getenv("ALLOWED_HOSTS"))
-CSRF_TRUSTED_ORIGINS = split_env_list(os.getenv("CSRF_TRUSTED_ORIGINS"))
-CORS_ALLOWED_ORIGINS = split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+CORS_ALLOWED_ORIGINS = [
+    normalize_origin(v) for v in split_env_list(os.getenv("CORS_ALLOWED_ORIGINS"))
+]
+CORS_ALLOWED_ORIGINS = [v for v in CORS_ALLOWED_ORIGINS if v]
+if DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 CORS_ALLOW_CREDENTIALS = True
 
 SECRET_KEY = os.getenv(

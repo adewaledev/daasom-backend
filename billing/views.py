@@ -8,14 +8,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from billing.models import Invoice, InvoiceAddon
-from billing.serializers import InvoiceSerializer, InvoiceAddonSerializer
+from billing.models import Invoice
+from billing.serializers import InvoiceSerializer
 from billing.permissions import CanCreateInvoice, CanManageInvoiceStatus
 from billing.services import recompute_invoice_totals
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):
-    queryset = Invoice.objects.all().select_related("job").prefetch_related("addons")
+    queryset = Invoice.objects.all().select_related("job")
     serializer_class = InvoiceSerializer
 
     def get_permissions(self):
@@ -59,8 +59,6 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         invoice.save(update_fields=["status", "updated_at"])
         return Response(InvoiceSerializer(invoice).data)
 
-    from rest_framework.decorators import action
-
     @action(detail=True, methods=["get"])
     def payment_summary(self, request, pk=None):
         invoice = self.get_object()
@@ -79,18 +77,3 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             "due": str(due),
             "status": invoice.status,
         })
-
-
-class InvoiceAddonViewSet(viewsets.ModelViewSet):
-    queryset = InvoiceAddon.objects.all().select_related("invoice")
-    serializer_class = InvoiceAddonSerializer
-
-    def get_permissions(self):
-        # allow OPS/ADMIN to add add-ons; accounts/admin can also edit
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [CanCreateInvoice()]
-        return [IsAuthenticated()]
-
-    def perform_create(self, serializer):
-        addon = serializer.save()
-        recompute_invoice_totals(addon.invoice)

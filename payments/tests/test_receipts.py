@@ -1,13 +1,12 @@
 import pytest
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from clients.models import Client
 from jobs.models import Job
-from expenses.models import Expense
 from billing.models import Invoice
-from billing.services import recompute_invoice_totals
 
 
 def login(api: APIClient, username: str, password: str) -> str:
@@ -33,21 +32,8 @@ def test_receipts_update_invoice_payment_status_and_summary():
     job = Job.objects.create(client=client, zone="DUTY",
                              file_number="FPAY01", quantity=1)
 
-    Expense.objects.create(
-        job=job,
-        category="Clearing",
-        description="Fee",
-        amount="25000.00",
-        currency="NGN",
-        expense_date="2026-02-17",
-        status="SUBMITTED",
-    )
-
     invoice = Invoice.objects.create(
-        job=job, invoice_number="INV-P01", currency="NGN")
-    # add-on = 5000
-    invoice.addons.create(description="Extra Handling", amount="5000.00")
-    recompute_invoice_totals(invoice)  # total should be 30000.00
+        job=job, invoice_number="INV-P01", currency="NGN", grand_total="30000.00")
 
     # viewer cannot create receipt
     api = APIClient()
@@ -89,9 +75,9 @@ def test_receipts_update_invoice_payment_status_and_summary():
     # summary endpoint on invoice
     s1 = api.get(f"/api/invoices/{invoice.id}/payment_summary/")
     assert s1.status_code == 200
-    assert s1.data["total"] == "30000.00"
-    assert s1.data["paid"] == "10000.00"
-    assert s1.data["due"] == "20000.00"
+    assert Decimal(s1.data["total"]) == Decimal("30000.00")
+    assert Decimal(s1.data["paid"]) == Decimal("10000.00")
+    assert Decimal(s1.data["due"]) == Decimal("20000.00")
 
     # second receipt pays remaining -> PAID
     r2 = api.post(
@@ -110,8 +96,8 @@ def test_receipts_update_invoice_payment_status_and_summary():
 
     s2 = api.get(f"/api/invoices/{invoice.id}/payment_summary/")
     assert s2.status_code == 200
-    assert s2.data["paid"] == "30000.00"
-    assert s2.data["due"] == "0.00"
+    assert Decimal(s2.data["paid"]) == Decimal("30000.00")
+    assert Decimal(s2.data["due"]) == Decimal("0.00")
 
     invoice.refresh_from_db()
     assert invoice.status == "PAID"

@@ -63,3 +63,34 @@ def test_invoice_create_and_status_lifecycle():
 
     # sanity: invoice exists
     assert Invoice.objects.filter(id=invoice_id).exists()
+
+
+@pytest.mark.django_db
+def test_invoice_create_accepts_amount_alias_for_grand_total():
+    call_command("seed_milestones")
+
+    User = get_user_model()
+    User.objects.create_user(username="ops2", password="pass123", role="OPS")
+
+    client = Client.objects.create(
+        client_code="CINV2", client_prefix="DAA", client_name="Daasom Ltd")
+    job = Job.objects.create(client=client, zone="DUTY",
+                             file_number="FINV02", quantity=1)
+
+    api = APIClient()
+    ops_access = login(api, "ops2", "pass123")
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {ops_access}")
+
+    resp = api.post(
+        "/api/invoices/",
+        {
+            "job": str(job.id),
+            "invoice_number": "INV-T02",
+            "currency": "NGN",
+            "amount": "45500.00",
+        },
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.data["grand_total"] == "45500.00"
+    assert resp.data["amount"] == "45500.00"

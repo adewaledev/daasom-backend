@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from ledger.models import LedgerEntry
@@ -38,3 +38,13 @@ def upsert_ledger_from_receipt(sender, instance: Receipt, **kwargs):
             "event_date": instance.payment_date,
         },
     )
+
+
+@receiver(post_delete, sender=Receipt)
+def delete_ledger_from_receipt(sender, instance: Receipt, **kwargs):
+    LedgerEntry.objects.filter(source_id=instance.id).delete()
+
+
+@receiver(post_delete, sender=Expense)
+def delete_ledger_from_expense(sender, instance: Expense, **kwargs):
+    LedgerEntry.objects.filter(source_id=instance.id).delete()

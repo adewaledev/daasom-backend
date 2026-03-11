@@ -1,7 +1,5 @@
-from django.db import models
-
-# Create your models here.
 import uuid
+
 from django.db import models
 from jobs.models import Job
 
@@ -26,6 +24,8 @@ class Invoice(models.Model):
     addons_total = models.DecimalField(
         max_digits=14, decimal_places=2, default=0)
     grand_total = models.DecimalField(
+        max_digits=14, decimal_places=2, default=0)
+    invoice_amount = models.DecimalField(
         max_digits=14, decimal_places=2, default=0)
 
     status = models.CharField(

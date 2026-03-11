@@ -4,11 +4,11 @@ from billing.models import Invoice
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
-    # Backward/frontend compatibility: accept/use `amount` as alias of `grand_total`.
+    # Backward/frontend compatibility: accept/use `amount` as alias of `invoice_amount`.
     amount = serializers.DecimalField(
         max_digits=14,
         decimal_places=2,
-        source="grand_total",
+        source="invoice_amount",
         required=False,
     )
 

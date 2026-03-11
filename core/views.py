@@ -1,5 +1,6 @@
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAdmin, IsOps
+from core.rbac import get_user_role
 from django.shortcuts import render
 
 # Create your views here.
@@ -20,7 +21,7 @@ class MeView(APIView):
 
     def get(self, request):
         u = request.user
-        return Response({"id": u.id, "username": u.username})
+        return Response({"id": u.id, "username": u.username, "role": get_user_role(u)})
 
 
 class AdminOnlyView(APIView):

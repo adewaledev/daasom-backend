@@ -6,26 +6,18 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Sum
-
-from expenses.models import Expense
-from expenses.serializers import ExpenseSerializer
-from expenses.permissions import CanCreateExpense, CanApproveExpense
 from rest_framework.exceptions import MethodNotAllowed
 
+from core.rbac import PermissionCode, RBACActionPermissionMixin
+from expenses.models import Expense
+from expenses.serializers import ExpenseSerializer
 
-class ExpenseViewSet(viewsets.ModelViewSet):
+
+class ExpenseViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
     queryset = Expense.objects.all().select_related("job")
     serializer_class = ExpenseSerializer
-
-    def get_permissions(self):
-        if self.action in ["create"]:
-            return [CanCreateExpense()]
-        if self.action in ["update", "partial_update"]:
-            return [CanApproveExpense()]
-        if self.action in ["destroy"]:
-            # only Accounts/Admin can delete (or we disable below)
-            return [CanApproveExpense()]
-        return [IsAuthenticated()]
+    write_permission = PermissionCode.EXPENSES_WRITE
+    read_permission_classes = (IsAuthenticated,)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def totals(self, request):
@@ -35,7 +27,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             qs = qs.filter(job_id=job_id)
 
         total = qs.aggregate(total=Sum("amount"))["total"] or 0
-        return Response({"job_id": job_id, "total": str(total)})
+        return Response({"job_id": job_id, "total": f"{total:.2f}"})
 
     def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed("DELETE")

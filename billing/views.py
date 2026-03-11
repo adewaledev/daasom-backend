@@ -8,22 +8,24 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.rbac import PermissionCode, RBACActionPermissionMixin
 from billing.models import Invoice
 from billing.serializers import InvoiceSerializer
-from billing.permissions import CanCreateInvoice, CanManageInvoiceStatus
 from billing.services import recompute_invoice_totals
 
 
-class InvoiceViewSet(viewsets.ModelViewSet):
+class InvoiceViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
     queryset = Invoice.objects.all().select_related("job")
     serializer_class = InvoiceSerializer
-
-    def get_permissions(self):
-        if self.action in ["create"]:
-            return [CanCreateInvoice()]
-        if self.action in ["issue", "mark_paid", "mark_partial", "void"]:
-            return [CanManageInvoiceStatus()]
-        return [IsAuthenticated()]
+    write_permission = PermissionCode.INVOICES_WRITE
+    action_permission_map = {
+        "refresh_totals": PermissionCode.INVOICES_WRITE,
+        "issue": PermissionCode.INVOICES_WRITE,
+        "mark_partial": PermissionCode.INVOICES_WRITE,
+        "mark_paid": PermissionCode.INVOICES_WRITE,
+        "void": PermissionCode.INVOICES_WRITE,
+    }
+    read_permission_classes = (IsAuthenticated,)
 
     @action(detail=True, methods=["post"])
     def refresh_totals(self, request, pk=None):

@@ -1,11 +1,9 @@
-from rest_framework.permissions import BasePermission
+from core.rbac import PermissionByCode, PermissionCode
 
 
-class CanCreateExpense(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in {"ADMIN", "OPS"}
+class CanCreateExpense(PermissionByCode):
+    required_permission = PermissionCode.EXPENSES_WRITE
 
 
-class CanApproveExpense(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in {"ADMIN", "ACCOUNTS"}
+class CanApproveExpense(PermissionByCode):
+    required_permission = PermissionCode.EXPENSES_WRITE

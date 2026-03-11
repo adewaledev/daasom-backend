@@ -1,6 +1,5 @@
-from rest_framework.permissions import BasePermission
+from core.rbac import PermissionByCode, PermissionCode
 
 
-class CanManageJobs(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in {"ADMIN", "OPS"}
+class CanManageJobs(PermissionByCode):
+    required_permission = PermissionCode.JOBS_WRITE

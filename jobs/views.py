@@ -7,19 +7,17 @@ from django.shortcuts import render
 # Create your views here.
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+
+from core.rbac import PermissionCode, RBACActionPermissionMixin
 from jobs.models import Job
 from jobs.serializers import JobSerializer
-from jobs.permissions import CanManageJobs
 
 
-class JobViewSet(viewsets.ModelViewSet):
+class JobViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
     queryset = Job.objects.all().select_related("client")
     serializer_class = JobSerializer
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [CanManageJobs()]
-        return [IsAuthenticated()]
+    write_permission = PermissionCode.JOBS_WRITE
+    read_permission_classes = (IsAuthenticated,)
 
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
     def milestones(self, request, pk=None):

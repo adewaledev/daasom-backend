@@ -1,28 +1,14 @@
-from rest_framework.permissions import BasePermission
+from accounts.roles import UserRole
+from core.rbac import AllowedRolesPermission
 
 
-class IsAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == "ADMIN"
-        )
+class IsAdmin(AllowedRolesPermission):
+    allowed_roles = frozenset({UserRole.ADMIN})
 
 
-class IsOps(BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in {"OPS", "ADMIN"}
-        )
+class IsOps(AllowedRolesPermission):
+    allowed_roles = frozenset({UserRole.ADMIN, UserRole.OPS})
 
 
-class IsAccounts(BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in {"ACCOUNTS", "ADMIN"}
-        )
+class IsAccounts(AllowedRolesPermission):
+    allowed_roles = frozenset({UserRole.ADMIN, UserRole.ACCOUNTS})

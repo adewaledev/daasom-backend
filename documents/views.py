@@ -1,17 +1,21 @@
+from urllib import request as urllib_request
+from urllib.error import URLError
+
+from django.http import HttpResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.rbac import PermissionCode, RBACActionPermissionMixin
 from documents.models import Document
 from documents.serializers import DocumentSerializer
 from documents.storage import upload_file
 
 
-class DocumentViewSet(viewsets.ModelViewSet):
+class DocumentViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
     queryset = Document.objects.all().order_by("-uploaded_at")
     serializer_class = DocumentSerializer
-    permission_classes = [IsAuthenticated]
+    write_permission = PermissionCode.DOCUMENTS_WRITE
 
     def create(self, request, *args, **kwargs):
         VALID_DOC_TYPES = {"JOB", "INVOICE", "RECEIPT"}

@@ -6,20 +6,17 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.rbac import PermissionCode, RBACActionPermissionMixin
 from payments.models import Receipt
 from payments.serializers import ReceiptSerializer
-from payments.permissions import CanCreateReceipt
 from payments.services import recompute_invoice_payment
 
 
-class ReceiptViewSet(viewsets.ModelViewSet):
+class ReceiptViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
     queryset = Receipt.objects.all().select_related("invoice")
     serializer_class = ReceiptSerializer
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [CanCreateReceipt()]
-        return [IsAuthenticated()]
+    write_permission = PermissionCode.RECEIPTS_WRITE
+    read_permission_classes = (IsAuthenticated,)
 
     def perform_create(self, serializer):
         receipt = serializer.save()

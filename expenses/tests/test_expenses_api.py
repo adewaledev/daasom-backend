@@ -76,3 +76,38 @@ def test_expense_create_permissions_and_totals():
     totals = api.get(f"/api/expenses/totals/?job_id={job.id}")
     assert totals.status_code == 200
     assert totals.data["total"] == "25000.00"
+
+
+@pytest.mark.django_db
+def test_expense_delete_allowed_for_ops():
+    User = get_user_model()
+    User.objects.create_user(username="ops2", password="pass123", role="OPS")
+
+    client = Client.objects.create(
+        client_code="CX02", client_prefix="DAA", client_name="Delete Test Ltd"
+    )
+    job = Job.objects.create(client=client, zone="DUTY",
+                             file_number="FEX02", quantity=1)
+
+    api = APIClient()
+    ops_access = login(api, "ops2", "pass123")
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {ops_access}")
+
+    created = api.post(
+        "/api/expenses/",
+        {
+            "job": str(job.id),
+            "category": "Clearing",
+            "description": "Delete me",
+            "amount": "1500.00",
+            "currency": "NGN",
+            "expense_date": "2026-03-12",
+            "status": "SUBMITTED",
+        },
+        format="json",
+    )
+    assert created.status_code == 201
+
+    expense_id = created.data["id"]
+    deleted = api.delete(f"/api/expenses/{expense_id}/")
+    assert deleted.status_code == 204

@@ -6,7 +6,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Sum
-from rest_framework.exceptions import MethodNotAllowed
 
 from core.rbac import PermissionCode, RBACActionPermissionMixin
 from expenses.models import Expense
@@ -28,6 +27,3 @@ class ExpenseViewSet(RBACActionPermissionMixin, viewsets.ModelViewSet):
 
         total = qs.aggregate(total=Sum("amount"))["total"] or 0
         return Response({"job_id": job_id, "total": f"{total:.2f}"})
-
-    def destroy(self, request, *args, **kwargs):
-        raise MethodNotAllowed("DELETE")

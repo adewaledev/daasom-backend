@@ -3,7 +3,6 @@ import itertools
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management import call_command
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -12,7 +11,7 @@ from billing.models import Invoice
 from clients.models import Client
 from documents.models import Document
 from jobs.models import Job
-from tracking.models import JobMilestone
+from tracking.models import TrackerEntry
 
 
 ROLE_ORDER = [UserRole.ADMIN, UserRole.OPS, UserRole.ACCOUNTS, UserRole.VIEWER]
@@ -24,11 +23,6 @@ _ALLOWED_INVOICES = {UserRole.ADMIN, UserRole.OPS, UserRole.ACCOUNTS}
 _ALLOWED_RECEIPTS = {UserRole.ADMIN, UserRole.ACCOUNTS}
 _ALLOWED_DOCUMENTS = {UserRole.ADMIN, UserRole.OPS, UserRole.ACCOUNTS}
 _counter = itertools.count(1)
-
-
-@pytest.fixture(autouse=True)
-def seed_milestones(db):
-    call_command("seed_milestones")
 
 
 def next_value(prefix: str) -> str:
@@ -174,22 +168,32 @@ def test_jobs_and_tracker_write_matrix():
         else:
             assert response.status_code == 403
 
-    milestone_job = make_job(client=base_client)
-    milestone = JobMilestone.objects.filter(job=milestone_job).first()
-    assert milestone is not None
+    tracker_job = make_job(client=base_client)
+    tracker_entry = TrackerEntry.objects.create(
+        job=tracker_job,
+        entry_date="2026-03-12",
+        progress_report="Initial review complete",
+        next_step="Schedule inspection",
+    )
 
     for role in ROLE_ORDER:
         user = make_user(role)
         client = api_client(user)
-        response = client.patch(
-            f"/api/job-milestones/{milestone.id}/",
-            {"status": "DONE", "date": "2026-03-11"},
+        update_response = client.patch(
+            f"/api/tracker-entries/{tracker_entry.id}/",
+            {"next_step": "Collect release order"},
+            format="json",
+        )
+        complete_response = client.post(
+            f"/api/jobs/{tracker_job.id}/mark_tracker_completed/",
             format="json",
         )
         if role in _ALLOWED_TRACKER:
-            assert response.status_code == 200
+            assert update_response.status_code == 200
+            assert complete_response.status_code == 200
         else:
-            assert response.status_code == 403
+            assert update_response.status_code == 403
+            assert complete_response.status_code == 403
 
 
 @pytest.mark.django_db

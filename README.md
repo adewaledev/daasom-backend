@@ -73,45 +73,60 @@ tests/         Project-level smoke tests
 ## Domain model
 
 ### `accounts.User`
+
 - Extends `AbstractUser`
 - Adds `role` enum: `ADMIN`, `OPS`, `ACCOUNTS`, `VIEWER`
 
 ### `clients.Client`
+
 - `client_code` (unique), `client_prefix`, `client_name`, active flag
 
 ### `jobs.Job`
+
 - Belongs to `Client`
 - Zone: `DUTY | FREE | EXPORT`
 - Shipment/operations metadata (file number, containers, BL/AWB, etc.)
 
 ### `tracking.MilestoneTemplate`
+
 - Zone-specific template milestone (`key`, `label`, `sort_order`)
 
 ### `tracking.JobMilestone`
-- Belongs to `Job` + `MilestoneTemplate`
-- `status`: `PENDING | DONE`, optional `date`
+
+- Legacy milestone model kept for compatibility with older tracker flows
+
+### `tracking.TrackerEntry`
+
+- Belongs to `Job`
+- Freeform tracker rows with `entry_date`, `progress_report`, `next_step`
 
 ### `expenses.Expense`
+
 - Belongs to `Job`
 - Category, amount, currency, expense date, workflow status
 
 ### `billing.Invoice`
+
 - One-to-one with `Job`
 - Stores `expenses_total`, `addons_total`, `grand_total`
 - Status: `DRAFT | ISSUED | PARTIALLY_PAID | PAID | VOID`
 
 ### `billing.InvoiceAddon`
+
 - Extra charge line-items belonging to an invoice
 
 ### `payments.Receipt`
+
 - Payment record belonging to invoice
 - Unique non-empty reference per invoice
 
 ### `ledger.LedgerEntry`
+
 - Normalized accounting projection for expenses/receipts
 - Idempotent via unique `source_id`
 
 ### `documents.Document`
+
 - Metadata for uploaded document
 - Linked by `doc_type` + one of `job_id` / `invoice_id` / `receipt_id`
 - Stores provider key + URL returned from Cloudinary
@@ -121,17 +136,20 @@ tests/         Project-level smoke tests
 ## Authentication and roles
 
 ### Auth
+
 - JWT login: `POST /api/auth/login/`
 - JWT refresh: `POST /api/auth/refresh/`
 - Default API permission is authenticated access.
 
 ### Role model
+
 - `ADMIN`: full access
 - `OPS`: operations-heavy write access (clients/jobs/expenses/invoice creation)
 - `ACCOUNTS`: finance-heavy actions (expense approvals, invoice status, receipts)
 - `VIEWER`: read-only behavior through authenticated endpoints
 
 ### Permission highlights
+
 - Client create/update/delete: `ADMIN`, `OPS`
 - Job create/update/delete: `ADMIN`, `OPS`
 - Expense create: `ADMIN`, `OPS`
@@ -148,16 +166,19 @@ tests/         Project-level smoke tests
 All routes are mounted under `/api/` unless stated otherwise.
 
 ### Core
+
 - `GET /api/health/`
 - `GET /api/me/`
 - `GET /api/admin-only/`
 - `GET /api/ops-only/`
 
 ### Auth
+
 - `POST /api/auth/login/`
 - `POST /api/auth/refresh/`
 
 ### Clients
+
 - `GET /api/clients/`
 - `POST /api/clients/`
 - `GET /api/clients/{id}/`
@@ -166,6 +187,7 @@ All routes are mounted under `/api/` unless stated otherwise.
 - `DELETE /api/clients/{id}/`
 
 ### Jobs
+
 - `GET /api/jobs/`
 - `POST /api/jobs/`
 - `GET /api/jobs/{id}/`
@@ -175,15 +197,26 @@ All routes are mounted under `/api/` unless stated otherwise.
 - `GET /api/jobs/{id}/milestones/`
 
 ### Tracking
+
 - `GET /api/job-milestones/`
 - `POST /api/job-milestones/`
 - `GET /api/job-milestones/{id}/`
 - `PUT /api/job-milestones/{id}/`
 - `PATCH /api/job-milestones/{id}/`
 - `DELETE /api/job-milestones/{id}/`
-- `GET /api/tracker/?zone=&client_code=&file_number=`
+- `GET /api/tracker-entries/`
+- `POST /api/tracker-entries/`
+- `GET /api/tracker-entries/{id}/`
+- `PUT /api/tracker-entries/{id}/`
+- `PATCH /api/tracker-entries/{id}/`
+- `DELETE /api/tracker-entries/{id}/`
+- `GET /api/tracker/?zone=&client_code=&file_number=&tracker_completed=`
+- `GET /api/jobs/{id}/tracker_entries/`
+- `POST /api/jobs/{id}/mark_tracker_completed/`
+- `POST /api/jobs/{id}/reopen_tracker/`
 
 ### Expenses
+
 - `GET /api/expenses/`
 - `POST /api/expenses/`
 - `GET /api/expenses/{id}/`
@@ -193,6 +226,7 @@ All routes are mounted under `/api/` unless stated otherwise.
 - `GET /api/expenses/totals/?job_id=`
 
 ### Billing
+
 - `GET /api/invoices/`
 - `POST /api/invoices/`
 - `GET /api/invoices/{id}/`
@@ -207,6 +241,7 @@ All routes are mounted under `/api/` unless stated otherwise.
 - `GET /api/invoices/{id}/payment_summary/`
 
 Invoice add-ons:
+
 - `GET /api/invoice-addons/`
 - `POST /api/invoice-addons/`
 - `GET /api/invoice-addons/{id}/`
@@ -215,6 +250,7 @@ Invoice add-ons:
 - `DELETE /api/invoice-addons/{id}/`
 
 ### Payments
+
 - `GET /api/receipts/`
 - `POST /api/receipts/`
 - `GET /api/receipts/{id}/`
@@ -224,15 +260,18 @@ Invoice add-ons:
 - `GET /api/receipts/summary/?invoice_id=`
 
 ### Ledger
+
 - `GET /api/ledger/`
 - `GET /api/ledger/{id}/`
 
 Filters:
+
 - `/api/ledger/?job_id=`
 - `/api/ledger/?invoice_id=`
 - `/api/ledger/?entry_type=EXPENSE|RECEIPT`
 
 ### Documents
+
 - `GET /api/documents/`
 - `POST /api/documents/` *(multipart upload with `file` + ids)*
 - `GET /api/documents/{id}/`
@@ -302,6 +341,7 @@ CLOUDINARY_API_SECRET=...
 ```
 
 Notes:
+
 - `DATABASE_URL` is required by current settings path.
 - In non-debug mode, security settings enforce SSL/HSTS and secure cookies.
 
@@ -354,6 +394,7 @@ or (if using project venv explicitly):
 ```
 
 Current test suites cover:
+
 - auth and role protections
 - client permissions
 - job milestone auto-creation

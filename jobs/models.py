@@ -2,6 +2,7 @@ from django.db import models
 
 # Create your models here.
 import uuid
+from django.conf import settings
 from django.db import models
 from clients.models import Client
 
@@ -41,6 +42,15 @@ class Job(models.Model):
         max_digits=14, decimal_places=2, null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
+    tracker_completed = models.BooleanField(default=False)
+    tracker_completed_at = models.DateTimeField(null=True, blank=True)
+    tracker_completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tracker_completed_jobs",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

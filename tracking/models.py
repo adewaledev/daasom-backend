@@ -43,3 +43,18 @@ class JobMilestone(models.Model):
     class Meta:
         unique_together = ("job", "template")
         ordering = ["template__sort_order"]
+
+
+class TrackerEntry(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(
+        Job, on_delete=models.CASCADE, related_name="tracker_entries"
+    )
+    entry_date = models.DateField()
+    progress_report = models.TextField()
+    next_step = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["entry_date", "created_at"]

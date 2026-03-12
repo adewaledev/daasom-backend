@@ -64,6 +64,13 @@ def test_job_tracker_entries_and_completion_flow():
     tracker_row = next(r for r in resp3.data if r["file_number"] == "F100")
     assert tracker_row["tracker_completed"] is False
     assert tracker_row["tracker_entries"][0]["next_step"] == "Submit customs paperwork"
+    assert "NEPZA_Request_Date" in tracker_row["progress_report_options"]
+    assert "Container_Returned_Date" in tracker_row["next_step_options"]
+
+    options_resp = api.get("/api/tracker/options/")
+    assert options_resp.status_code == 200
+    assert "Refund_Applied_Date" in options_resp.data["progress_report_options"]
+    assert "Release_EC_Date" in options_resp.data["next_step_options"]
 
     complete_resp = api.post(f"/api/jobs/{job_id}/mark_tracker_completed/")
     assert complete_resp.status_code == 200

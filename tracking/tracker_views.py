@@ -2,7 +2,59 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from jobs.models import Job
-from tracking.models import TrackerEntry
+from tracking.models import MilestoneTemplate, TrackerEntry
+
+
+LEGACY_TRACKER_DROPDOWN_FALLBACK = [
+    "ETA",
+    "ATA",
+    "Complete_Documents_Date",
+    "DTI_Date",
+    "Duty_Paid_Date",
+    "Exam_Date",
+    "Release_EC_Date",
+    "Date_Delivered",
+    "DATE_INVOICED",
+    "Date_of_Payment",
+    "Container_Returned_Date",
+    "Refund_Applied_Date",
+    "Refund_Paid_Date",
+    "EC_Dispatched_Date",
+    "EC_Collected_By",
+    "NEPZA_Request_Date",
+    "NEPZA_Received_Date",
+    "Cover_Letter_Received_Date",
+    "Release_Date",
+    "TDO_Date",
+]
+
+
+def build_tracker_dropdown_options() -> list[str]:
+    labels = list(
+        MilestoneTemplate.objects.order_by("sort_order").values_list("label", flat=True)
+    )
+
+    options: list[str] = []
+    seen: set[str] = set()
+    for label in labels + LEGACY_TRACKER_DROPDOWN_FALLBACK:
+        normalized = (label or "").strip()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            options.append(normalized)
+    return options
+
+
+class TrackerOptionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        options = build_tracker_dropdown_options()
+        return Response(
+            {
+                "progress_report_options": options,
+                "next_step_options": options,
+            }
+        )
 
 
 class TrackerView(APIView):
@@ -48,6 +100,8 @@ class TrackerView(APIView):
                 }
             )
 
+        options = build_tracker_dropdown_options()
+
         rows = []
         for j in jobs:
             rows.append({
@@ -65,6 +119,8 @@ class TrackerView(APIView):
                 "tracker_completed": j.tracker_completed,
                 "tracker_completed_at": j.tracker_completed_at.isoformat().replace("+00:00", "Z") if j.tracker_completed_at else None,
                 "tracker_completed_by": j.tracker_completed_by.username if j.tracker_completed_by else None,
+                "progress_report_options": options,
+                "next_step_options": options,
                 "tracker_entries": tracker_rows.get(str(j.id), []),
             })
 

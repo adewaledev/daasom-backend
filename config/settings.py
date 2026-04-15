@@ -13,8 +13,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import sys
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 from config.env_utils import normalize_host, normalize_origin, normalize_domain, split_env_list
 
@@ -25,6 +27,17 @@ USE_X_FORWARDED_HOST = True
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
+
+DEFAULT_DEV_SECRET_KEY = "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!"
+
+
+def validate_secret_key(secret_key: str, debug: bool, argv: list[str] | None = None) -> None:
+    command = Path((argv or sys.argv)[0]).name
+    if not debug and command != "pytest" and secret_key == DEFAULT_DEV_SECRET_KEY:
+        raise ImproperlyConfigured(
+            "SECRET_KEY environment variable must be set when DEBUG=False."
+        )
+
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
@@ -67,8 +80,8 @@ else:
 # de-duplicate while preserving order
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-6vf3j24@1=aw*v7m^!jcl5ef0df)c(xnd2+e&n*wud!vvd$r)!")
+SECRET_KEY = os.getenv("SECRET_KEY", DEFAULT_DEV_SECRET_KEY)
+validate_secret_key(SECRET_KEY, DEBUG)
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -93,6 +106,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "core",
     "accounts",
     "clients",
@@ -174,6 +188,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": "10/min",
+        "auth_refresh": "30/min",
+        "auth_logout": "10/min",
+    },
 }
 
 SESSION_COOKIE_AGE = 60 * 60
@@ -182,6 +201,9 @@ SESSION_SAVE_EVERY_REQUEST = True
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "CHECK_REVOKE_TOKEN": True,
     "TOKEN_OBTAIN_SERIALIZER": "accounts.auth.RoleTokenObtainPairSerializer",
 }
 

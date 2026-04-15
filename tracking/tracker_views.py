@@ -31,7 +31,8 @@ LEGACY_TRACKER_DROPDOWN_FALLBACK = [
 
 def build_tracker_dropdown_options() -> list[str]:
     labels = list(
-        MilestoneTemplate.objects.order_by("sort_order").values_list("label", flat=True)
+        MilestoneTemplate.objects.order_by(
+            "sort_order").values_list("label", flat=True)
     )
 
     options: list[str] = []

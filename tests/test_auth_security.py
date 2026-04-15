@@ -1,6 +1,5 @@
 import pytest
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from rest_framework.test import APIClient
 
 
@@ -76,26 +75,21 @@ def test_password_change_invalidates_existing_access_token():
 
 @pytest.mark.django_db
 def test_login_endpoint_is_throttled():
-    cache.clear()
-
     user_model = get_user_model()
     user_model.objects.create_user(
         username="admin1", password="pass123", role="ADMIN")
 
     client = APIClient()
 
-    try:
-        responses = []
-        for _ in range(11):
-            responses.append(
-                client.post(
-                    "/api/auth/login/",
-                    {"username": "admin1", "password": "wrong-pass"},
-                    format="json",
-                )
+    responses = []
+    for _ in range(11):
+        responses.append(
+            client.post(
+                "/api/auth/login/",
+                {"username": "admin1", "password": "wrong-pass"},
+                format="json",
             )
+        )
 
-        assert all(response.status_code == 401 for response in responses[:-1])
-        assert responses[-1].status_code == 429
-    finally:
-        cache.clear()
+    assert all(response.status_code == 401 for response in responses[:-1])
+    assert responses[-1].status_code == 429

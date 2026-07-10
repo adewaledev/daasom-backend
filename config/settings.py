@@ -10,15 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
-from datetime import timedelta
 import os
 import sys
-import dj_database_url
-from dotenv import load_dotenv
-from django.core.exceptions import ImproperlyConfigured
+from datetime import timedelta
+from pathlib import Path
 
-from config.env_utils import normalize_host, normalize_origin, normalize_domain, split_env_list
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
+from config.env_utils import normalize_domain, normalize_host, normalize_origin, split_env_list
 
 load_dotenv()
 
@@ -160,6 +161,14 @@ DATABASES = {
         default=os.getenv("DATABASE_URL")
     )
 }
+
+if DATABASES.get("default"):
+    # If dj-database-url injected 'req', force it back to 'require'
+    if DATABASES["default"].get("OPTIONS", {}).get("sslmode") == "req":
+        DATABASES["default"]["OPTIONS"]["sslmode"] = "require"
+    
+    # Ensure connection health checks are enabled for serverless stability
+    DATABASES["default"]["conn_health_checks"] = True
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
